@@ -27,6 +27,15 @@ services:
         networks:
             web:
 
+    watchtower:
+        image: containrrr/watchtower:latest
+        restart: always
+        environment:
+            - TZ=Europe/Paris
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+        command: --schedule "0 30 6 * * *" --cleanup
+
 networks:
     web:
         external: true
