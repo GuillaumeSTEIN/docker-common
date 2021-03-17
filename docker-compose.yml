@@ -1,0 +1,32 @@
+version: "3"
+
+services:
+    traefik:
+        image: traefik:v2.3
+        restart: always
+        command:
+            - "--global.sendAnonymousUsage=false"
+            - "--providers.docker"
+            - "--providers.docker.exposedByDefault=false"
+            - "--providers.file"
+            - "--providers.file.directory=/etc/traefik/config/"
+            - "--providers.file.watch=true"
+            - "--entrypoints.web.address=:80"
+            - "--entrypoints.websecure.address=:443"
+            - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+            - "--certificatesresolvers.letsencrypt.acme.email=${LETSENCRYPT_EMAIL}"
+            - "--certificatesresolvers.letsencrypt.acme.storage=/etc/acme/acme.json"
+        ports:
+            - 80:80
+            - 443:443
+        volumes:
+            - ./config/:/etc/traefik/config/:ro
+            - ./htpasswd.d/:/auth/
+            - ./acme/:/etc/acme/
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+        networks:
+            web:
+
+networks:
+    web:
+        external: true
