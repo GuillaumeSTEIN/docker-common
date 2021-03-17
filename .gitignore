@@ -1,0 +1,2 @@
+htpasswd.d/*
+!htpasswd.d/.gitkeep
