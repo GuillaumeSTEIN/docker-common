@@ -1,3 +1,3 @@
-docker-compose down
+./stop.sh
 git pull
-docker-compose up -d
+./start.sh

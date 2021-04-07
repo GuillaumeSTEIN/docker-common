@@ -26,6 +26,7 @@ services:
             - /var/run/docker.sock:/var/run/docker.sock:ro
         networks:
             web:
+            intern:
 
     watchtower:
         image: containrrr/watchtower:latest
@@ -35,7 +36,87 @@ services:
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
         command: --schedule "0 30 6 * * *" --cleanup
+        networks:
+            intern:
+
+    # Sentry
+    redis:
+        image: redis
+        networks:
+            intern:
+
+    postgres:
+        image: postgres
+        environment:
+            POSTGRES_USER: sentry
+            POSTGRES_PASSWORD: sentry
+            POSTGRES_DB: sentry
+        volumes:
+            - db-data:/var/lib/postgresql/data
+        networks:
+            intern:
+
+    sentry:
+        image: sentry
+        links:
+            - redis
+            - postgres
+        ports:
+            - 9000:9000
+        environment:
+            SENTRY_SECRET_KEY: ${SENTRY_SECRET_KEY}
+            SENTRY_POSTGRES_HOST: postgres
+            SENTRY_DB_USER: sentry
+            SENTRY_DB_PASSWORD: sentry
+            SENTRY_REDIS_HOST: redis
+        labels:
+            - "traefik.enable=true"
+            - "traefik.port=9000"
+            - "traefik.http.middlewares.redirect.redirectscheme.scheme=https"
+            - "traefik.http.routers.sentry-insecure.rule=Host(`${FQDN_SENTRY}`)"
+            - "traefik.http.routers.sentry-insecure.middlewares=redirect"
+            - "traefik.http.routers.sentry.rule=Host(`${FQDN_SENTRY}`)"
+            - "traefik.http.routers.sentry.entrypoints=websecure"
+            - "traefik.http.routers.sentry.tls.certresolver=letsencrypt"
+            - "traefik.docker.network=web"
+        networks:
+            web:
+            intern:
+
+    cron:
+        image: sentry
+        links:
+            - redis
+            - postgres
+        command: "sentry run cron"
+        environment:
+            SENTRY_SECRET_KEY: ${SENTRY_SECRET_KEY}
+            SENTRY_POSTGRES_HOST: postgres
+            SENTRY_DB_USER: sentry
+            SENTRY_DB_PASSWORD: sentry
+            SENTRY_REDIS_HOST: redis
+        networks:
+            intern:
+
+    worker:
+        image: sentry
+        links:
+            - redis
+            - postgres
+        command: "sentry run worker"
+        environment:
+            SENTRY_SECRET_KEY: ${SENTRY_SECRET_KEY}
+            SENTRY_POSTGRES_HOST: postgres
+            SENTRY_DB_USER: sentry
+            SENTRY_DB_PASSWORD: sentry
+            SENTRY_REDIS_HOST: redis
+        networks:
+            intern:
 
 networks:
     web:
         external: true
+    intern:
+
+volumes:
+    db-data: {}
