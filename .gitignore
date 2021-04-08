@@ -1,4 +1,7 @@
+.env.local
+
 htpasswd.d/*
 !htpasswd.d/.gitkeep
+
 acme/*
 !acme/.gitkeep
